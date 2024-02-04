@@ -1,0 +1,155 @@
+AssetModule.js
+
+const AssetsModule = {};
+
+AssetsModule.fetchImage = () => {
+  return dialog.showOpenDialog(BrowserWindow.getFocusedWindow(), {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'png', 'jpeg'] },
+      { name: 'svg', extensions: ['svg'] }
+    ]
+  });
+};
+
+
+Action.js
+
+export function fetchImage(isPageProperty) {
+  return {
+    type: FETCH_IMAGE,
+    isPageProperty: isPageProperty || false
+  };
+}
+
+electronMiddleware.js
+
+case FETCH_IMAGE: {
+        const { isPageProperty } = action;
+        ipcRenderer.send('fetch-image', isPageProperty);
+        break;
+      }
+
+main.dev.js
+
+ipcMain.on('fetch-image', (event, args) => {
+  ipcModule
+    .fetchImage()
+    .then(imgPath =>
+      event.reply('get-image-success', { imgPath, isPageProperty: args })
+    )
+    .catch(e => event.reply('not-valid-image', JSON.parse(e.message)));
+});
+
+ipcmodule/index.js
+
+fetchImage() {
+    return AssetsModule.fetchImage().then(result => {
+      if (!result || result.canceled === true) {
+        // return 'cancelled';
+        throw new Error('cancelled');
+      }
+      const files = result.filePaths;
+      return AssetsModule.validateFile(files).then(() => {
+        const sourcePath = RandomNumber() + files[0].split(/[\\\/]/).pop();
+        if (!fs.existsSync(path.join(this.projectDir, TEMP_FOLDER))) {
+          fs.mkdirSync(path.join(this.projectDir, TEMP_FOLDER));
+        }
+
+        const resourcePath = path.join(
+          this.projectDir,
+          TEMP_FOLDER,
+          sourcePath
+        );
+        fs.copyFileSync(result.filePaths[0], resourcePath);
+        console.log('resourcePath------>', resourcePath);
+        return resourcePath;
+      });
+    });
+  }
+
+
+utils/Icons.json
+
+{
+  "button": [
+    { "id": "Dining", "label": "Dining" },
+    { "id": "Fanspeed", "label": "Fanspeed" },
+    { "id": "Eco", "label": "Eco" }
+	]
+}
+
+
+property.js
+
+const handleClickImage = () => {
+   props.attribute.fetchImage();
+  };
+
+   {!isMultiSelect && (
+                <Grid container item xs={12} style={{ paddingBottom: 10 }}>
+                  <Grid
+                    item
+                    xs={10}
+                    className={`${classes.header} ${classes.content} ${classes.subHeader}`}
+                  >
+                    Icon
+                  </Grid>
+                  <Grid item xs={2} data-testid="toggle-icon-button">
+                    <Switch
+                      onChange={onToggleButtonIcon}
+                      color="primary"
+                      name="showTime"
+                      checked={isIconEnable}
+                      inputProps={{ 'aria-label': 'primary checkbox' }}
+                    />
+                  </Grid>
+                  <Button onClick={handleClickImage}>svg</Button>
+                </Grid>
+              )}
+              {!isMultiSelect && isIconEnable && (
+                <Grid
+                  container
+                  className={`${classes.content}`}
+                  style={{ paddingBottom: 10 }}
+                >
+                  <Grid item xs={12} style={{ paddingBottom: 10 }}>
+                    <IconListBox
+                      formKey="src"
+                      listData={Icons.button}
+                      labelText=""
+                      initialValue={selectedWidget?.icon?.src}
+                      selectedElement={selectedWidget}
+                      onValueChange={onButtonIconChange}
+                    />
+                  </Grid>
+                  <Grid item xs={12} style={{ paddingBottom: 10 }}>
+                    <ListBox
+                      formKey="position"
+                      labelText="Position"
+                      listData={ICON_POSITION}
+                      initialValue={selectedWidget?.icon?.position || 'left'}
+                      selectedElement={selectedWidget}
+                      onValueChange={onButtonIconChange}
+                    />
+                  </Grid>
+
+Uirenderer.js
+
+{attribute.icon && (
+        <div
+          style={{
+            width: attribute?.icon?.fontSize || 50,
+            height: attribute?.icon?.fontSize || 50,
+            margin: 5
+          }}
+        >
+          <AppSVGIcon
+            icon={attribute?.icon?.src}
+            color={attribute?.icon?.color}
+            width={attribute?.icon?.fontSize || 50}
+            height={attribute?.icon?.fontSize || 50}
+            styles={{ marginRight: attribute.showLabel ? 10 : 0 }}
+          />
+        </div>
+      )}
